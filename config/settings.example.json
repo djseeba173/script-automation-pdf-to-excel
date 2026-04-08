@@ -1,0 +1,56 @@
+{
+  "onedrive": {
+    "enabled": false,
+    "user_email": "",
+    "folder_path": ""
+  },
+  "azure": {
+    "pages": null
+  },
+  "paths": {
+    "input_dir": "data/inbox",
+    "working_dir": "data/working",
+    "processed_dir": "data/processed",
+    "error_dir": "data/error",
+    "output_dir": "data/output",
+    "log_dir": "data/logs"
+  },
+  "processing": {
+    "allowed_document_types": [
+      "invoice",
+      "return_acknowledgement"
+    ],
+    "supported_extensions": [
+      ".pdf"
+    ],
+    "continue_on_error": true,
+    "write_raw_json": true,
+    "output_strategy": "per_input_file"
+  },
+  "reporting": {
+    "email_enabled": false,
+    "summary_recipients": []
+  },
+  "csv": {
+    "per_document_columns": {
+      "invoice": [],
+      "return_acknowledgement": []
+    }
+  },
+  "validation": {
+    "required_fields_by_document_type": {
+      "invoice": [],
+      "return_acknowledgement": []
+    },
+    "invoice_rules": {
+      "allow_missing_invoice_due_date_when_payment_terms": [
+        "contado",
+        "contado inmediato",
+        "contado sin intereses",
+        "consignacion",
+        "consignación"
+      ],
+      "missing_invoice_due_date_policy_for_other_payment_terms": "configurable"
+    }
+  }
+}

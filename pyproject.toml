@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "invoice-batch"
+version = "0.1.0"
+description = "Batch processor for invoice extraction with Azure Document Intelligence."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "azure-ai-formrecognizer>=3.3.0",
+    "azure-core>=1.30.0",
+    "python-dotenv>=1.0.0",
+    "openpyxl>=3.1.0",
+    "requests>=2.31.0",
+    "pypdf>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = []
+
+[project.scripts]
+invoice-batch = "invoice_batch.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
