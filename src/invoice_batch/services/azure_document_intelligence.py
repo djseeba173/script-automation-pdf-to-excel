@@ -239,6 +239,55 @@ def _enrich_lines_with_discounts(lines: list[DocumentLine], raw_content: str) ->
         )
 
 
+# ---------------------------------------------------------------------------
+# Parser de acuses de devolución (formato multi-columna)
+# ---------------------------------------------------------------------------
+
+_DEVOLUCION_ITEM_RE = re.compile(
+    r'(\d{13})\n([^\n]+)\n(\d+)\n\d+\n\d+\n\d+',
+)
+
+
+def _parse_devolucion_items(raw_content: str) -> dict[str, tuple[str, int]]:
+    """Extrae {isbn: (titulo, recibida)} del formato 'Diferencias en Devoluciones'.
+
+    Formato por ítem en el texto crudo:
+        {ISBN-13}\\n{Título}\\n{Recibida}\\n{Documentado}\\n{Fallada}\\n{Deteriorado}
+    """
+    result: dict[str, tuple[str, int]] = {}
+    for isbn, titulo, recibida in _DEVOLUCION_ITEM_RE.findall(raw_content):
+        result[isbn] = (titulo, int(recibida))
+    return result
+
+
+def _enrich_lines_from_devolucion(lines: list[DocumentLine], raw_content: str) -> None:
+    """Completa ISBN y Cantidad en líneas de acuses cuando Azure no los extrajo (in-place).
+
+    Busca en el texto crudo usando el patrón de devolución. Para cada línea sin
+    product_code, intenta localizar el ISBN por coincidencia de título.
+    """
+    parsed = _parse_devolucion_items(raw_content)
+    if not parsed:
+        return
+
+    title_lookup: dict[str, str] = {
+        titulo.upper().strip(): isbn
+        for isbn, (titulo, _) in parsed.items()
+    }
+
+    for line in lines:
+        if line.values.get("product_code"):
+            continue  # Azure ya lo extrajo, no tocar
+
+        desc = (line.values.get("description") or "").upper().strip()
+        isbn = title_lookup.get(desc)
+        if isbn:
+            _, recibida = parsed[isbn]
+            line.values["product_code"] = isbn
+            if not line.values.get("quantity"):
+                line.values["quantity"] = recibida
+
+
 def _parse_document_subtype(content: str) -> str | None:
     """Extrae el tipo de comprobante (Factura, Nota de Crédito, etc.) desde el texto crudo."""
     content_lower = content.lower()
@@ -246,7 +295,19 @@ def _parse_document_subtype(content: str) -> str | None:
         return "Nota de Crédito"
     if "nota de d\u00e9bito" in content_lower or "nota de debito" in content_lower:
         return "Nota de Débito"
-    if "factura" in content_lower:
+    if (
+        "nota de devoluci\u00f3n" in content_lower
+        or "nota de devolucion" in content_lower
+        or "diferencias en las devoluciones" in content_lower
+        or "diferencias en devoluciones" in content_lower
+        or "devolucion de consignacion" in content_lower
+        or "devolución de consignación" in content_lower
+        or "remito de devolucion" in content_lower
+        or "remito de devolución" in content_lower
+    ):
+        return "Acuse de Devolución"
+    # "factura" solo si no está en frases del tipo "no válido como factura"
+    if re.search(r'(?<!no v[aá]lido como )\bfactura\b', content_lower):
         return "Factura"
     return None
 
@@ -354,6 +415,7 @@ class AzureDocumentIntelligenceExtractor:
 
         lines = _extract_lines(fields.get("Items"))
         _enrich_lines_with_discounts(lines, raw_content)
+        _enrich_lines_from_devolucion(lines, raw_content)
 
         document = ExtractedDocument(
             source_file=file_path.name,

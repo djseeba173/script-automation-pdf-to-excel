@@ -20,6 +20,7 @@ _SUBTYPE_TO_FOLDER: dict[str, str] = {
     "Factura": "Facturas",
     "Nota de Crédito": "Notas de Crédito",
     "Nota de Débito": "Notas de Débito",
+    "Acuse de Devolución": "Acuses de Devolución",
 }
 
 

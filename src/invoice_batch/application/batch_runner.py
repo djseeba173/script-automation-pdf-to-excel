@@ -86,6 +86,12 @@ class BatchRunner:
             fatal_error = str(exc)
             self.logger.exception("Fallo fatal de corrida")
 
+        subtype_counts: dict[str, int] = {}
+        for item in results:
+            if item.document is not None:
+                subtype = item.document.fields.get("document_subtype") or "Desconocido"
+                subtype_counts[subtype] = subtype_counts.get(subtype, 0) + 1
+
         summary = RunSummary(
             run_id=run_id,
             started_at=started_at,
@@ -97,6 +103,7 @@ class BatchRunner:
             skipped_count=0,
             results=results,
             fatal_error=fatal_error,
+            subtype_counts=subtype_counts,
         )
 
         self.reporter.report_finish(summary)

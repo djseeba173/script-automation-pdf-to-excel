@@ -58,3 +58,4 @@ class RunSummary:
     skipped_count: int
     results: list[FileProcessResult] = field(default_factory=list)
     fatal_error: str | None = None
+    subtype_counts: dict[str, int] = field(default_factory=dict)
